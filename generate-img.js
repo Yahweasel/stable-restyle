@@ -82,4 +82,4 @@ async function generateImg(oname, backend, prompt) {
     }
 }
 
-module.exports = {generateImg};
+module.exports = {run, generateImg};

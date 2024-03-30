@@ -1,0 +1,321 @@
+{
+  "stable-restyle": {
+    "inputs": ["15", "1504"],
+    "output": "9"
+  },
+  "4": {
+    "inputs": {
+      "ckpt_name": "OfficialStableDiffusion/sd_xl_base_1.0.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "Load Checkpoint"
+    }
+  },
+  "5": {
+    "inputs": {
+      "pixels": [
+        "15",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "6": {
+    "inputs": {
+      "width": 1792,
+      "height": 1344,
+      "crop_w": 0,
+      "crop_h": 0,
+      "target_width": 1184,
+      "target_height": 888,
+      "text_g": "claymation",
+      "text_l": "claymation",
+      "clip": [
+        "1500",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncodeSDXL",
+    "_meta": {
+      "title": "CLIPTextEncodeSDXL"
+    }
+  },
+  "7": {
+    "inputs": {
+      "width": 960,
+      "height": 704,
+      "crop_w": 0,
+      "crop_h": 0,
+      "target_width": 1184,
+      "target_height": 888,
+      "text_g": "",
+      "text_l": "",
+      "clip": [
+        "1500",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncodeSDXL",
+    "_meta": {
+      "title": "CLIPTextEncodeSDXL"
+    }
+  },
+  "8": {
+    "inputs": {
+      "samples": [
+        "1508",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "10": {
+    "inputs": {
+      "noise_seed": 1431655765,
+      "steps": 20,
+      "cfg": 7,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "start_at_step": 14,
+      "end_at_step": 10000,
+      "var_seed": 0,
+      "var_seed_strength": 0,
+      "sigma_max": -1,
+      "sigma_min": -1,
+      "rho": 7,
+      "add_noise": "enable",
+      "return_with_leftover_noise": "disable",
+      "previews": "default",
+      "model": [
+        "1500",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "1501",
+        0
+      ]
+    },
+    "class_type": "SwarmKSampler",
+    "_meta": {
+      "title": "SwarmKSampler"
+    }
+  },
+  "15": {
+    "inputs": {
+      "image_base64": ""
+    },
+    "class_type": "SwarmLoadImageB64",
+    "_meta": {
+      "title": "SwarmLoadImageB64"
+    }
+  },
+  "1500": {
+    "inputs": {
+      "lora_name": "CLAYMATE_V2.03_.safetensors",
+      "strength_model": 1,
+      "strength_clip": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "Load LoRA"
+    }
+  },
+  "1501": {
+    "inputs": {
+      "blend_factor": 0.5,
+      "samples1": [
+        "5",
+        0
+      ],
+      "samples2": [
+        "1503",
+        0
+      ]
+    },
+    "class_type": "LatentBlend",
+    "_meta": {
+      "title": "Latent Blend"
+    }
+  },
+  "1503": {
+    "inputs": {
+      "pixels": [
+        "1504",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "1504": {
+    "inputs": {
+      "image_base64": ""
+    },
+    "class_type": "SwarmLoadImageB64",
+    "_meta": {
+      "title": "SwarmLoadImageB64"
+    }
+  },
+  "1506": {
+    "inputs": {
+      "noise_seed": 1431655766,
+      "steps": 20,
+      "cfg": 7,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "start_at_step": 14,
+      "end_at_step": 10000,
+      "var_seed": 0,
+      "var_seed_strength": 0,
+      "sigma_max": -1,
+      "sigma_min": -1,
+      "rho": 7,
+      "add_noise": "enable",
+      "return_with_leftover_noise": "disable",
+      "previews": "default",
+      "model": [
+        "1500",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "1507",
+        0
+      ]
+    },
+    "class_type": "SwarmKSampler",
+    "_meta": {
+      "title": "SwarmKSampler"
+    }
+  },
+  "1507": {
+    "inputs": {
+      "blend_factor": 0.5,
+      "samples1": [
+        "10",
+        0
+      ],
+      "samples2": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "LatentBlend",
+    "_meta": {
+      "title": "Latent Blend"
+    }
+  },
+  "1508": {
+    "inputs": {
+      "noise_seed": 1431655767,
+      "steps": 20,
+      "cfg": 7,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "start_at_step": 14,
+      "end_at_step": 10000,
+      "var_seed": 0,
+      "var_seed_strength": 0,
+      "sigma_max": -1,
+      "sigma_min": -1,
+      "rho": 7,
+      "add_noise": "enable",
+      "return_with_leftover_noise": "disable",
+      "previews": "default",
+      "model": [
+        "1500",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "1509",
+        0
+      ]
+    },
+    "class_type": "SwarmKSampler",
+    "_meta": {
+      "title": "SwarmKSampler"
+    }
+  },
+  "1509": {
+    "inputs": {
+      "blend_factor": 0.5,
+      "samples1": [
+        "1506",
+        0
+      ],
+      "samples2": [
+        "1503",
+        0
+      ]
+    },
+    "class_type": "LatentBlend",
+    "_meta": {
+      "title": "Latent Blend"
+    }
+  }
+}
