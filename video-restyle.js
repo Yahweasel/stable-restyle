@@ -57,7 +57,7 @@ async function interpolateMotion(
     if (await exists(toImage))
         return;
 
-    const cmd = ["./motion-transfer/motion-transfer", "-m"];
+    const cmd = [`${__dirname}/motion-transfer/motion-transfer`, "-m"];
     let fi;
     for (fi = fromFrame; fi != toFrame; fi += step)
         cmd.push(`in/${six(fi)}.png`);
