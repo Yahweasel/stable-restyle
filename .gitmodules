@@ -1,0 +1,3 @@
+[submodule "motion-transfer"]
+	path = motion-transfer
+	url = https://github.com/Yahweasel/motion-transfer.git
