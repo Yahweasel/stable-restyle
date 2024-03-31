@@ -54,6 +54,9 @@ async function interpolateMotion(
     fromFrame, toFrame, step,
     fromImage, toImage
 ) {
+    if (await exists(toImage))
+        return;
+
     const cmd = ["./motion-transfer/motion-transfer", "-m"];
     let fi;
     for (fi = fromFrame; fi != toFrame; fi += step)
@@ -64,6 +67,15 @@ async function interpolateMotion(
         "-o", toImage
     );
     await run(cmd);
+}
+
+/**
+ * Using stable-restyle, restyle this.
+ */
+async function restyle(promptFile, in1, in2, out) {
+    if (await exists(out))
+        return;
+    return sr.restyle(promptFile, in1, in2, out);
 }
 
 async function main() {
@@ -94,13 +106,15 @@ async function main() {
 
     // First frame is a direct translation
     console.log(1);
-    await sr.restyle(
+    await restyle(
         "claymation14.json",
         "in/000001.png", "in/000001.png",
         "out/000001.png"
     );
 
     let outSlide = 1;
+
+    const promises = [];
 
     // One key at a time...
     for (let keyNum = 1 + framesPerKey;; keyNum += framesPerKey) {
@@ -114,26 +128,28 @@ async function main() {
             `interp/${six(outSlide + slidesPerKey)}.png`
         );
         outSlide += slidesPerKey;
+        const outSlideL = outSlide;
 
         // Regenerate the final frame with AI
-        const finalFramePromise = sr.restyle(
+        console.log(outSlideL);
+        const finalFramePromise = restyle(
             "claymation14.json",
-            `in/${six(keyNum)}.png`, `interp/${six(outSlide)}.png`,
-            `out/${six(outSlide)}.png`
+            `in/${six(keyNum)}.png`, `interp/${six(outSlideL)}.png`,
+            `out/${six(outSlideL)}.png`
         );
 
         // Regenerate the first half with forward AI
         const forwardPromise = (async () => {
             for (let i = 1; i < slidesPerKey/2; i++) {
                 const inSlide = keyNum - framesPerKey + i*framesPerSlide;
-                const out = outSlide - slidesPerKey + i;
+                const out = outSlideL - slidesPerKey + i;
                 await interpolateMotion(
                     inSlide - framesPerSlide, inSlide, 1,
                     `out/${six(out-1)}.png`,
                     `interp/${six(out)}.png`
                 );
                 console.log(out);
-                await sr.restyle(
+                await restyle(
                     "claymation17.json",
                     `in/${six(inSlide)}.png`, `interp/${six(out)}.png`,
                     `out/${six(out)}.png`
@@ -145,14 +161,14 @@ async function main() {
         const backwardPromise = finalFramePromise.then(async () => {
             for (let i = 1; i < slidesPerKey/2; i++) {
                 const inSlide = keyNum - i*framesPerSlide;
-                const out = outSlide - i;
+                const out = outSlideL - i;
                 await interpolateMotion(
                     inSlide + framesPerSlide, inSlide, -1,
                     `out/${six(out+1)}.png`,
                     `interp/${six(out)}.png`
                 );
                 console.log(out);
-                await sr.restyle(
+                await restyle(
                     "claymation17.json",
                     `in/${six(inSlide)}.png`, `interp/${six(out)}.png`,
                     `out/${six(out)}.png`
@@ -168,7 +184,7 @@ async function main() {
 
             const i = slidesPerKey/2;
             const inSlide = keyNum - i*framesPerSlide;
-            const out = outSlide - i;
+            const out = outSlideL - i;
             await interpolateMotion(
                 inSlide - framesPerSlide, inSlide, 1,
                 `out/${six(out-1)}.png`,
@@ -189,17 +205,21 @@ async function main() {
                 `interp/${six(out)}.png`
             ]);
             console.log(out);
-            await sr.restyle(
+            await restyle(
                 "claymation17.json",
                 `in/${six(inSlide)}.png`, `interp/${six(out)}.png`,
                 `out/${six(out)}.png`
             );
         });
 
-        await Promise.all([
-            finalFramePromise, forwardPromise, backwardPromise, middlePromise
-        ]);
+        await finalFramePromise;
+        promises.push(Promise.all([
+            forwardPromise, backwardPromise, middlePromise
+        ]));
+        if (promises.length > 12)
+            await promises.shift();
     }
+    await Promise.all(promises);
 }
 
 main();
