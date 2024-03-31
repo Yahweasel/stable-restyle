@@ -38,9 +38,9 @@ async function waitForFile(name) {
             await fs.access(name, fs.constants.F_OK);
             break;
         } catch (ex) {}
-        await new Promise(res => setTimeout(res, 1000));
+        await new Promise(res => setTimeout(res, 100));
     }
-    await new Promise(res => setTimeout(res, 1000));
+    await new Promise(res => setTimeout(res, 100));
 }
 
 /**
