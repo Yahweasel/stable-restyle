@@ -1,0 +1,16 @@
+This tool restyles images or video using Stable Diffusion. The image restyling
+is quite simple (it just runs the image through Stable Diffusion), but the video
+restyling is a more interesting trick.
+
+To video-restyle, put your input frames as PNG files in an `in` directory, and
+run `video-restyle.js`. Use `-fps` and/or `-spk` to control frame behavior. The
+output has "slides" and "keys": the "slides" is its output frames, and the
+"keys" are frames that are independently converted by AI. That is, AI errors
+will accumulate at the frequency of keys. `-fps` is frames per slide (i.e.,
+input frames per slide), and `-spk` is slides per key. For instance, if your
+input is 24 FPS and you want output at 12FPS, you need to set `-fps` to 2.
+Typically, `-spk` is 4.
+
+The inbuilt Stable Diffusion ComfyUI workflows are to convert images to
+claymation using
+https://civitai.com/models/208168/claymate-claymation-style-for-sdxl .
