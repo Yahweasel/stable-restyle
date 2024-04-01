@@ -150,7 +150,7 @@ async function main() {
                 );
                 console.log(out);
                 await restyle(
-                    "claymation17.json",
+                    "claymation16.json",
                     `in/${six(inSlide)}.png`, `interp/${six(out)}.png`,
                     `out/${six(out)}.png`
                 );
@@ -169,7 +169,7 @@ async function main() {
                 );
                 console.log(out);
                 await restyle(
-                    "claymation17.json",
+                    "claymation16.json",
                     `in/${six(inSlide)}.png`, `interp/${six(out)}.png`,
                     `out/${six(out)}.png`
                 );
@@ -206,7 +206,7 @@ async function main() {
             ]);
             console.log(out);
             await restyle(
-                "claymation17.json",
+                "claymation16.json",
                 `in/${six(inSlide)}.png`, `interp/${six(out)}.png`,
                 `out/${six(out)}.png`
             );
