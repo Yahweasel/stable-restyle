@@ -195,15 +195,17 @@ async function main() {
                 `out/${six(out+1)}.png`,
                 `interp/${six(out)}-b.png`
             );
-            await run([
-                "ffmpeg", "-loglevel", "error",
-                "-i", `interp/${six(out)}-f.png`,
-                "-i", `interp/${six(out)}-b.png`,
-                "-filter_complex", "[0:v][1:v]blend=all_expr=A*0.5+B*0.5[vid]",
-                "-map", "[vid]",
-                "-y", "-update", "1",
-                `interp/${six(out)}.png`
-            ]);
+            if (!await exists(`interp/${six(out)}.png`)) {
+                await run([
+                    "ffmpeg", "-loglevel", "error",
+                    "-i", `interp/${six(out)}-f.png`,
+                    "-i", `interp/${six(out)}-b.png`,
+                    "-filter_complex", "[0:v][1:v]blend=all_expr=A*0.5+B*0.5[vid]",
+                    "-map", "[vid]",
+                    "-y", "-update", "1",
+                    `interp/${six(out)}.png`
+                ]);
+            }
             console.log(out);
             await restyle(
                 "claymation16.json",
@@ -216,7 +218,7 @@ async function main() {
         promises.push(Promise.all([
             forwardPromise, backwardPromise, middlePromise
         ]));
-        if (promises.length > 12)
+        if (promises.length > 2)
             await promises.shift();
     }
     await Promise.all(promises);

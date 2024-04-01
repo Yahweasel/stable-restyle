@@ -21,11 +21,19 @@ const fs = require("fs/promises");
  * Send this prompt to the AI.
  */
 async function sendPrompt(backend, prompt) {
-    const f = await fetch(`${backend}/prompt`, {
-        method: "POST",
-        headers: {"content-type": "application/json"},
-        body: JSON.stringify({prompt})
-    });
+    let f = null;
+    for (let retries = 0; retries < 3; retries++) {
+        try {
+            f = await fetch(`${backend}/prompt`, {
+                method: "POST",
+                headers: {"content-type": "application/json"},
+                body: JSON.stringify({prompt})
+            });
+            break;
+        } catch (ex) {
+            await new Promise(res => setTimeout(res, 15000));
+        }
+    }
     await f.text();
 }
 
