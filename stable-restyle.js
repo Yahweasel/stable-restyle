@@ -30,7 +30,7 @@ const backendPromises = backendQueueSizes.map(x => Promise.all([]));
 /**
  * Restyle these two images into this image using this prompt (all filenames).
  */
-async function restyle(promptFile, in1, in2, out) {
+async function restyle(promptFile, inp, mask, out) {
     // Choose a backend
     let backendIdx = 0;
     let blen = backendQueueSizes[0];
@@ -48,8 +48,8 @@ async function restyle(promptFile, in1, in2, out) {
         const prompt = JSON.parse(await fs.readFile(promptFile, "utf8"));
         const sr = prompt["stable-restyle"];
         delete prompt["stable-restyle"];
-        prompt[sr.inputs[0]].inputs.image_base64 = (await fs.readFile(in1)).toString("base64");
-        prompt[sr.inputs[1]].inputs.image_base64 = (await fs.readFile(in2)).toString("base64");
+        prompt[sr.input].inputs.image_base64 = (await fs.readFile(inp)).toString("base64");
+        prompt[sr.mask].inputs.image_base64 = (await fs.readFile(mask)).toString("base64");
         const outPrefix = ("" + Math.random() + Math.random() + Math.random()).replace(/\./g, "");
         prompt[sr.output].inputs.filename_prefix = `stable-restyle-out/${outPrefix}`;
 
