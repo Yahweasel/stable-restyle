@@ -93,8 +93,8 @@ async function maskMotion(
             ;[mask][part]blend=addition[mask]`;
         ii++;
     }
-    filterGraph += ";[mask]format=y8,geq=lum=min(p(X\\,Y)*6+64\\,255)";
-    for (let i = 0; i < 16; i++) {
+    filterGraph += ";[mask]format=y8,geq=lum=min(p(X\\,Y)*4+128\\,255)";
+    for (let i = 0; i < 8; i++) {
         let max = "0";
         for (let y = -1; y <= 1; y++) {
             for (let x = -1; x <= 1; x++) {
@@ -103,7 +103,7 @@ async function maskMotion(
         }
         filterGraph += `,geq=lum=${max}`;
     }
-    filterGraph += "[mask]";
+    filterGraph += ",unsharp=lx=9:ly=9:la=-1.5[mask]";
 
     cmd.push(
         "-filter_complex", filterGraph,
@@ -118,6 +118,9 @@ async function maskMotion(
  * Create a blank mask using this as a template.
  */
 async function blankMask(fromImage, toImage) {
+    if (await exists(toImage))
+        return;
+
     await run([
         "ffmpeg",
         "-loglevel", "error",
@@ -135,6 +138,9 @@ async function blankMask(fromImage, toImage) {
 async function mergeMask(
     forward, backward, mask, to
 ) {
+    if (await exists(to))
+        return;
+
     await run([
         "ffmpeg",
         "-loglevel", "error",
