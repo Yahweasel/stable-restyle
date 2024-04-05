@@ -20,8 +20,6 @@ const fs = require("fs/promises");
 const genImg = require("./generate-img");
 const sr = require("./stable-restyle");
 
-let framesPerSlide = 2;
-
 /**
  * Does this file exist?
  */
@@ -95,7 +93,7 @@ async function maskMotion(
             ;[mask][part]blend=addition[mask]`;
         ii++;
     }
-    filterGraph += ";[mask]format=y8";
+    filterGraph += ";[mask]format=y8,geq=lum=min(p(X\\,Y)*6+64\\,255)";
     for (let i = 0; i < 16; i++) {
         let max = "0";
         for (let y = -1; y <= 1; y++) {
@@ -161,70 +159,9 @@ async function restyle(promptFile, inp, mask, out) {
     return sr.restyle(promptFile, inp, mask, out);
 }
 
-/**
- * Restyle this by binary combination from lo to hi.
- */
-function binaryRestyle(meta, lo, hi) {
-    if (hi <= lo + 1)
-        return;
-
-    let mid = ~~((hi + lo) / 2);
-    while ((mid%framesPerSlide) != 0)
-        mid++;
-    if (mid >= hi)
-        mid -= framesPerSlide;
-    if (mid <= lo)
-        return;
-
-    meta.promises[mid] = meta.locks[mid].then(async () => {
-        meta.unlocks[lo]();
-        meta.unlocks[hi]();
-        await meta.promises[lo];
-        await meta.promises[hi];
-
-        const loSlide = ~~(lo / framesPerSlide) + 1;
-        const midSlide = ~~(mid / framesPerSlide) + 1;
-        const hiSlide = ~~(hi / framesPerSlide) + 1;
-
-        // Motion-interpolate up
-        await interpolateMotion(
-            lo+1, mid+1, 1,
-            `out/${six(loSlide)}.png`,
-            `interp/${six(midSlide)}-f.png`
-        );
-
-        // And down
-        await interpolateMotion(
-            hi+1, mid+1, -1,
-            `out/${six(hiSlide)}.png`,
-            `interp/${six(midSlide)}-b.png`
-        );
-
-        // Mask-interpolate up
-        await maskMotion(lo+1, mid+1, `interp/${six(midSlide)}-m.png`);
-
-        // Mix
-        await mergeMask(
-            `interp/${six(midSlide)}-f.png`,
-            `interp/${six(midSlide)}-b.png`,
-            `interp/${six(midSlide)}-m.png`,
-            `interp/${six(midSlide)}.png`
-        );
-
-        // And restyle
-        await restyle(
-            "claymation.json",
-            `interp/${six(midSlide)}.png`, `interp/${six(midSlide)}-m.png`,
-            `out/${six(midSlide)}.png`
-        );
-    });
-
-    // Subdivide
-    binaryRestyle(meta, lo, mid);
-    binaryRestyle(meta, mid, hi);
-}
-
 async function main() {
+    let framesPerSlide = 2;
+
     for (let ai = 2; ai < process.argv.length; ai++) {
         const arg = process.argv[ai];
         switch (arg) {
@@ -251,52 +188,41 @@ async function main() {
     }
     frameCt = ~~(frameCt / framesPerSlide) * framesPerSlide;
 
-    // Create all the frame locks
-    const unlocks = Array(frameCt).fill(null);
-    const locks = Array(frameCt).fill(null).map((x, i) => new Promise(res => unlocks[i] = res));
-    const promises = Array(frameCt).fill(null);
-    const meta = {unlocks, locks, promises};
-
     // First frame is a direct translation
     await blankMask("in/000001.png", "interp/000001-m.png");
-    promises[0] = locks[0].then(async () => {
+    await restyle(
+        "claymation.json",
+        "in/000001.png", "interp/000001-m.png",
+        "out/000001.png"
+    );
+
+    let slide = 1;
+    for (let frame = 1 + framesPerSlide; frame < frameCt; frame += framesPerSlide) {
+        slide++;
+
+        // Interpolate the motion
+        await interpolateMotion(
+            frame - framesPerSlide, frame, 1,
+            `out/${six(slide-1)}.png`, `interp/${six(slide)}-f.png`
+        );
+
+        // Figure out the mask
+        await maskMotion(
+            frame - framesPerSlide, frame,
+            `interp/${six(slide)}-m.png`
+        );
+
+        // Mask the frame
+        await mergeMask(
+            `interp/${six(slide)}-f.png`, `in/${six(frame)}.png`,
+            `interp/${six(slide)}-m.png`, `interp/${six(slide)}.png`
+        );
+
         await restyle(
             "claymation.json",
-            "in/000001.png", "interp/000001-m.png",
-            "out/000001.png"
+            `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
+            `out/${six(slide)}.png`
         );
-    });
-
-    const groupSize = ~~(1024 / framesPerSlide) * framesPerSlide;
-
-    // Binary-restyle in groups of (usually) 1024
-    let idx;
-    for (idx = groupSize; idx < frameCt - 1; idx += groupSize) {
-        const gidx = idx;
-        promises[idx] = locks[idx].then(async () => {
-            await restyle(
-                "claymation.json",
-                `in/${six(gidx+1)}.png`, `interp/000001-m.png`,
-                `out/${six(gidx/framesPerSlide+1)}.png`
-            );
-        });
-        binaryRestyle(meta, idx - groupSize, idx);
-    }
-
-    // And the last group
-    promises[frameCt-1] = locks[frameCt-1].then(async () => {
-        await restyle(
-            "claymation.json",
-            `in/${six(frameCt)}.png`, `interp/000001-m.png`,
-            `out/${six(frameCt/framesPerSlide)}.png`
-        );
-    });
-    binaryRestyle(meta, idx - groupSize, frameCt-1);
-
-    // Then wait for promises
-    for (idx = 0; idx < frameCt; idx++) {
-        unlocks[idx]();
-        await promises[idx];
     }
 }
 
