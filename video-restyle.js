@@ -20,6 +20,8 @@ const fs = require("fs/promises");
 const genImg = require("./generate-img");
 const sr = require("./stable-restyle");
 
+let framesPerSlide = 2;
+
 /**
  * Does this file exist?
  */
@@ -48,6 +50,47 @@ function six(num) {
 }
 
 /**
+ * Get the scene changes in the input.
+ */
+async function sceneChanges(frameCt) {
+    const sceneFile = "interp/scenes.json";
+    if (await exists(sceneFile))
+        return JSON.parse(await fs.readFile(sceneFile, "utf8"));
+
+    // Compute scene changes
+    const p = cproc.spawn("ffmpeg", [
+        "-nostats",
+        "-framerate", "1", "-i", "in/%06d.png",
+        "-vf", "scdet",
+        "-f", "rawvideo", "-y", "/dev/null"
+    ], {
+        stdio: ["ignore", "inherit", "pipe"]
+    });
+    let stderr = "";
+    await new Promise(res => {
+        p.stderr.on("data", chunk => {
+            stderr += chunk.toString("utf8");
+        });
+        p.stderr.on("end", res);
+    });
+
+    // Parse
+    const scenes = [0];
+    for (const line of stderr.split("\n")) {
+        const parts = /^\[scdet.*lavfi\.scd\.time: ([0-9]*)/.exec(line);
+        if (!parts)
+            continue;
+        scenes.push(+parts[1]);
+    }
+    scenes.push(frameCt);
+
+    // Cache
+    await fs.writeFile(sceneFile, JSON.stringify(scenes));
+
+    return scenes;
+}
+
+/**
  * Using motion-transfer, interpolate this motion.
  */
 async function interpolateMotion(
@@ -73,7 +116,7 @@ async function interpolateMotion(
  * Using ffmpeg, create a mask for this motion.
  */
 async function maskMotion(
-    fromFrame, toFrame, toImage
+    fromFrame, toFrame, step, toImage
 ) {
     if (await exists(toImage))
         return;
@@ -81,13 +124,13 @@ async function maskMotion(
     const cmd = ["ffmpeg", "-loglevel", "error"];
 
     // Input all the files
-    for (let fi = fromFrame; fi <= toFrame; fi++)
+    for (let fi = fromFrame; fi !== toFrame; fi += step)
         cmd.push("-i", `in/${six(fi)}.png`);
 
     // Make the filtergraph
     let filterGraph = "[0:v]format=y8,geq=lum=0[mask]";
     let ii = 1;
-    for (let fi = fromFrame + 1; fi <= toFrame; fi++) {
+    for (let fi = fromFrame + step; fi !== toFrame; fi += step) {
         filterGraph +=
             `;[${ii-1}:v][${ii}:v]blend=difference,format=y8[part]
             ;[mask][part]blend=addition[mask]`;
@@ -165,9 +208,79 @@ async function restyle(promptFile, inp, mask, out) {
     return sr.restyle(promptFile, inp, mask, out);
 }
 
-async function main() {
-    let framesPerSlide = 2;
+/**
+ * Convert this scene.
+ */
+async function convertScene(lo, hi) {
+    // Find the middle point
+    const mid = ~~((lo+hi)/2/framesPerSlide) * framesPerSlide;
+    const midFrame = mid + 1;
+    const midSlide = mid / framesPerSlide + 1;
 
+    // Middle frame is a direct translation
+    await blankMask(`in/${six(midFrame)}.png`, `interp/${six(midSlide)}-m.png`);
+    await restyle(
+        "claymation.json",
+        `in/${six(midFrame)}.png`, `interp/${six(midSlide)}-m.png`,
+        `out/${six(midSlide)}.png`
+    );
+
+    // Convert down
+    for (let fi = mid - framesPerSlide; fi >= lo; fi -= framesPerSlide) {
+        const frame = fi + 1;
+        const slide = fi / framesPerSlide + 1;
+
+        // Interpolate the motion
+        await interpolateMotion(
+            frame + framesPerSlide, frame, -1,
+            `out/${six(slide+1)}.png`, `interp/${six(slide)}-b.png`
+        );
+
+        // Compute the mask
+        await maskMotion(
+            frame + framesPerSlide, frame, -1,
+            `interp/${six(slide)}-m.png`
+        );
+
+        // Merge the mask
+        await mergeMask(
+            `interp/${six(slide)}-b.png`, `in/${six(frame)}.png`,
+            `interp/${six(slide)}-m.png`, `interp/${six(slide)}.png`
+        );
+
+        // And restyle
+        await restyle(
+            "claymation.json",
+            `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
+            `out/${six(slide)}.png`
+        );
+    }
+
+    // And up
+    for (let fi = mid + framesPerSlide; fi < hi; fi += framesPerSlide) {
+        const frame = fi + 1;
+        const slide = fi / framesPerSlide + 1;
+        await interpolateMotion(
+            frame - framesPerSlide, frame, 1,
+            `out/${six(slide-1)}.png`, `interp/${six(slide)}-f.png`
+        );
+        await maskMotion(
+            frame - framesPerSlide, frame, 1,
+            `interp/${six(slide)}-m.png`
+        );
+        await mergeMask(
+            `interp/${six(slide)}-f.png`, `in/${six(frame)}.png`,
+            `interp/${six(slide)}-m.png`, `interp/${six(slide)}.png`
+        );
+        await restyle(
+            "claymation.json",
+            `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
+            `out/${six(slide)}.png`
+        );
+    }
+}
+
+async function main() {
     for (let ai = 2; ai < process.argv.length; ai++) {
         const arg = process.argv[ai];
         switch (arg) {
@@ -194,42 +307,17 @@ async function main() {
     }
     frameCt = ~~(frameCt / framesPerSlide) * framesPerSlide;
 
-    // First frame is a direct translation
-    await blankMask("in/000001.png", "interp/000001-m.png");
-    await restyle(
-        "claymation.json",
-        "in/000001.png", "interp/000001-m.png",
-        "out/000001.png"
-    );
+    // Find scenes
+    const scenes = await sceneChanges(frameCt);
 
-    let slide = 1;
-    for (let frame = 1 + framesPerSlide; frame < frameCt; frame += framesPerSlide) {
-        slide++;
-
-        // Interpolate the motion
-        await interpolateMotion(
-            frame - framesPerSlide, frame, 1,
-            `out/${six(slide-1)}.png`, `interp/${six(slide)}-f.png`
-        );
-
-        // Figure out the mask
-        await maskMotion(
-            frame - framesPerSlide, frame,
-            `interp/${six(slide)}-m.png`
-        );
-
-        // Mask the frame
-        await mergeMask(
-            `interp/${six(slide)}-f.png`, `in/${six(frame)}.png`,
-            `interp/${six(slide)}-m.png`, `interp/${six(slide)}.png`
-        );
-
-        await restyle(
-            "claymation.json",
-            `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
-            `out/${six(slide)}.png`
-        );
+    // And convert them
+    const promises = [];
+    for (let si = 0; si < scenes.length - 1; si++) {
+        promises.push(convertScene(scenes[si], scenes[si+1]));
+        while (promises.length >= 4)
+            await promises.shift();
     }
+    await Promise.all(promises);
 }
 
 main();
