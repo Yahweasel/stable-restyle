@@ -21,6 +21,7 @@ const genImg = require("./generate-img");
 const sr = require("./stable-restyle");
 
 let model = "claymation.json";
+let maskStrength = 4;
 let framesPerSlide = 2;
 
 /**
@@ -137,7 +138,7 @@ async function maskMotion(
             ;[mask][part]blend=addition[mask]`;
         ii++;
     }
-    filterGraph += ";[mask]format=y8,geq=lum=min(p(X\\,Y)*4+128\\,255)";
+    filterGraph += `;[mask]format=y8,geq=lum=min(p(X\\,Y)*${maskStrength}+${256-32*maskStrength}\\,255)`;
     for (let i = 0; i < 8; i++) {
         let max = "0";
         for (let y = -1; y <= 1; y++) {
@@ -287,6 +288,10 @@ async function main() {
         switch (arg) {
             case "--model":
                 model = process.argv[++ai];
+                break;
+
+            case "--mask-strength":
+                maskStrength = +process.argv[++ai];
                 break;
 
             case "--fps":
