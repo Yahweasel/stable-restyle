@@ -20,6 +20,7 @@ const fs = require("fs/promises");
 const genImg = require("./generate-img");
 const sr = require("./stable-restyle");
 
+let model = "claymation.json";
 let framesPerSlide = 2;
 
 /**
@@ -220,7 +221,7 @@ async function convertScene(lo, hi) {
     // Middle frame is a direct translation
     await blankMask(`in/${six(midFrame)}.png`, `interp/${six(midSlide)}-m.png`);
     await restyle(
-        "claymation.json",
+        model,
         `in/${six(midFrame)}.png`, `interp/${six(midSlide)}-m.png`,
         `out/${six(midSlide)}.png`
     );
@@ -250,7 +251,7 @@ async function convertScene(lo, hi) {
 
         // And restyle
         await restyle(
-            "claymation.json",
+            model,
             `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
             `out/${six(slide)}.png`
         );
@@ -273,7 +274,7 @@ async function convertScene(lo, hi) {
             `interp/${six(slide)}-m.png`, `interp/${six(slide)}.png`
         );
         await restyle(
-            "claymation.json",
+            model,
             `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
             `out/${six(slide)}.png`
         );
@@ -284,6 +285,10 @@ async function main() {
     for (let ai = 2; ai < process.argv.length; ai++) {
         const arg = process.argv[ai];
         switch (arg) {
+            case "--model":
+                model = process.argv[++ai];
+                break;
+
             case "--fps":
                 framesPerSlide = +process.argv[++ai];
                 break;
