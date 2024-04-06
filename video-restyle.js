@@ -324,7 +324,7 @@ async function main() {
     const promises = [];
     for (let si = 0; si < scenes.length - 1; si++) {
         promises.push(convertScene(scenes[si], scenes[si+1]));
-        while (promises.length >= 4)
+        while (promises.length >= 16)
             await promises.shift();
     }
     await Promise.all(promises);
