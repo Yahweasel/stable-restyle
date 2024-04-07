@@ -21,7 +21,7 @@ const genImg = require("./generate-img");
 const sr = require("./stable-restyle");
 
 let model = "claymation.json";
-let maskStrength = 4;
+let maskStrength = 2;
 let framesPerSlide = 2;
 
 /**
