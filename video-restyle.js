@@ -22,6 +22,7 @@ const sr = require("./stable-restyle");
 
 let model = "claymation.json";
 let maskStrength = 2;
+let maskSize = 16;
 let framesPerSlide = 2;
 
 /**
@@ -139,7 +140,7 @@ async function maskMotion(
         ii++;
     }
     filterGraph += `;[mask]format=y8,geq=lum=min(p(X\\,Y)*${maskStrength}+${256-32*maskStrength}\\,255)`;
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < maskSize; i++) {
         let max = "0";
         for (let y = -1; y <= 1; y++) {
             for (let x = -1; x <= 1; x++) {
@@ -292,6 +293,10 @@ async function main() {
 
             case "--mask-strength":
                 maskStrength = +process.argv[++ai];
+                break;
+
+            case "--mask-size":
+                maskSize = +process.argv[++ai];
                 break;
 
             case "--fps":
