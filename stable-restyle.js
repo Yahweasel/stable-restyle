@@ -60,7 +60,14 @@ async function restyle(promptFile, inp, mask, out) {
         backendQueueSizes[backendIdx]--;
     });
     backendPromises[backendIdx] = promise.catch(console.error);
-    return promise;
+
+    try {
+        return await promise;
+    } catch (ex) {
+        // Backend failed
+        backendQueueSizes[backendIdx] = Number.POSITIVE_INFINITY;
+        return await restyle(promptFile, inp, mask, out);
+    }
 }
 
 module.exports = {restyle};

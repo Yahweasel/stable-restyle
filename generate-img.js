@@ -41,11 +41,14 @@ async function sendPrompt(backend, prompt) {
  * Wait for this file to exist.
  */
 async function waitForFile(name) {
+    const endTime = performance.now() + 300000;
     while (true) {
         try {
             await fs.access(name, fs.constants.F_OK);
             break;
         } catch (ex) {}
+        if (performance.now() >= endTime)
+            throw Error("Backend failed");
         await new Promise(res => setTimeout(res, 100));
     }
     await new Promise(res => setTimeout(res, 100));
