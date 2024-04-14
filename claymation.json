@@ -2,7 +2,7 @@
   "stable-restyle": {
     "input": "15",
     "mask": "100",
-    "output": "9"
+    "output": "1501"
   },
   "4": {
     "inputs": {
@@ -31,12 +31,12 @@
   },
   "6": {
     "inputs": {
-      "width": 1792,
-      "height": 1344,
+      "width": 1920,
+      "height": 1408,
       "crop_w": 0,
       "crop_h": 0,
-      "target_width": 1184,
-      "target_height": 888,
+      "target_width": 1280,
+      "target_height": 960,
       "text_g": "claymation",
       "text_l": "claymation",
       "clip": [
@@ -51,12 +51,12 @@
   },
   "7": {
     "inputs": {
-      "width": 960,
-      "height": 704,
+      "width": 1024,
+      "height": 768,
       "crop_w": 0,
       "crop_h": 0,
-      "target_width": 1184,
-      "target_height": 888,
+      "target_width": 1280,
+      "target_height": 960,
       "text_g": "",
       "text_l": "",
       "clip": [
@@ -83,19 +83,6 @@
     "class_type": "VAEDecode",
     "_meta": {
       "title": "VAE Decode"
-    }
-  },
-  "9": {
-    "inputs": {
-      "filename_prefix": "ComfyUI",
-      "images": [
-        "8",
-        0
-      ]
-    },
-    "class_type": "SaveImage",
-    "_meta": {
-      "title": "Save Image"
     }
   },
   "10": {
@@ -201,6 +188,19 @@
     "class_type": "LoraLoader",
     "_meta": {
       "title": "Load LoRA"
+    }
+  },
+  "1501": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
     }
   }
 }
