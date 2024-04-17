@@ -228,59 +228,65 @@ async function convertScene(lo, hi) {
         `out/${six(midSlide)}.png`
     );
 
-    // Convert down
-    for (let fi = mid - framesPerSlide; fi >= lo; fi -= framesPerSlide) {
-        const frame = fi + 1;
-        const slide = fi / framesPerSlide + 1;
+    await Promise.all([(async () => {
 
-        // Interpolate the motion
-        await interpolateMotion(
-            frame + framesPerSlide, frame, -1,
-            `out/${six(slide+1)}.png`, `interp/${six(slide)}-b.png`
-        );
+        // Convert down
+        for (let fi = mid - framesPerSlide; fi >= lo; fi -= framesPerSlide) {
+            const frame = fi + 1;
+            const slide = fi / framesPerSlide + 1;
 
-        // Compute the mask
-        await maskMotion(
-            frame + framesPerSlide, frame, -1,
-            `interp/${six(slide)}-m.png`
-        );
+            // Interpolate the motion
+            await interpolateMotion(
+                frame + framesPerSlide, frame, -1,
+                `out/${six(slide+1)}.png`, `interp/${six(slide)}-b.png`
+            );
 
-        // Merge the mask
-        await mergeMask(
-            `interp/${six(slide)}-b.png`, `in/${six(frame)}.png`,
-            `interp/${six(slide)}-m.png`, `interp/${six(slide)}.png`
-        );
+            // Compute the mask
+            await maskMotion(
+                frame + framesPerSlide, frame, -1,
+                `interp/${six(slide)}-m.png`
+            );
 
-        // And restyle
-        await restyle(
-            model,
-            `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
-            `out/${six(slide)}.png`
-        );
-    }
+            // Merge the mask
+            await mergeMask(
+                `interp/${six(slide)}-b.png`, `in/${six(frame)}.png`,
+                `interp/${six(slide)}-m.png`, `interp/${six(slide)}.png`
+            );
 
-    // And up
-    for (let fi = mid + framesPerSlide; fi < hi; fi += framesPerSlide) {
-        const frame = fi + 1;
-        const slide = fi / framesPerSlide + 1;
-        await interpolateMotion(
-            frame - framesPerSlide, frame, 1,
-            `out/${six(slide-1)}.png`, `interp/${six(slide)}-f.png`
-        );
-        await maskMotion(
-            frame - framesPerSlide, frame, 1,
-            `interp/${six(slide)}-m.png`
-        );
-        await mergeMask(
-            `interp/${six(slide)}-f.png`, `in/${six(frame)}.png`,
-            `interp/${six(slide)}-m.png`, `interp/${six(slide)}.png`
-        );
-        await restyle(
-            model,
-            `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
-            `out/${six(slide)}.png`
-        );
-    }
+            // And restyle
+            await restyle(
+                model,
+                `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
+                `out/${six(slide)}.png`
+            );
+        }
+
+    })(), (async () => {
+
+        // And up
+        for (let fi = mid + framesPerSlide; fi < hi; fi += framesPerSlide) {
+            const frame = fi + 1;
+            const slide = fi / framesPerSlide + 1;
+            await interpolateMotion(
+                frame - framesPerSlide, frame, 1,
+                `out/${six(slide-1)}.png`, `interp/${six(slide)}-f.png`
+            );
+            await maskMotion(
+                frame - framesPerSlide, frame, 1,
+                `interp/${six(slide)}-m.png`
+            );
+            await mergeMask(
+                `interp/${six(slide)}-f.png`, `in/${six(frame)}.png`,
+                `interp/${six(slide)}-m.png`, `interp/${six(slide)}.png`
+            );
+            await restyle(
+                model,
+                `interp/${six(slide)}.png`, `interp/${six(slide)}-m.png`,
+                `out/${six(slide)}.png`
+            );
+        }
+
+    })()]);
 }
 
 async function main() {
@@ -329,7 +335,7 @@ async function main() {
     const promises = [];
     for (let si = 0; si < scenes.length - 1; si++) {
         promises.push(convertScene(scenes[si], scenes[si+1]));
-        while (promises.length >= 128)
+        while (promises.length >= 16)
             await promises.shift();
     }
     await Promise.all(promises);
