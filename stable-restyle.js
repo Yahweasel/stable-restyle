@@ -34,7 +34,7 @@ async function restyle(promptFile, inp, mask, out) {
     // Choose a backend
     let backendIdx = 0;
     let blen = backendQueueSizes[0];
-    for (let bi = 1; bi < backends.length; bi++) {
+    for (let bi = 0; bi < backends.length; bi++) {
         if (backendQueueSizes[bi] >= Number.POSITIVE_INFINITY)
             console.log(`Backend ${bi} is down`);
         if (backendQueueSizes[bi] < blen) {
